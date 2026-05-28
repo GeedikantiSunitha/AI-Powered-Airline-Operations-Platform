@@ -1,0 +1,12 @@
+{
+  "name": "flight-delay-analysis",
+  "description": "Analyze flight status, rotation, weather, and congestion to predict and explain delay risk",
+  "model": "anthropic.claude-3-sonnet-20240229-v1:0",
+  "tools": [
+    "get_flight_status",
+    "query_delay_predictions",
+    "get_weather_risk",
+    "get_airport_congestion"
+  ],
+  "exampleOutput": "Flight AI-302 has 78% delay risk due to late inbound aircraft and poor weather at destination."
+}

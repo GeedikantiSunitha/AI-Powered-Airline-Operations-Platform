@@ -1,0 +1,13 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CrewDutyRisk",
+  "type": "object",
+  "required": ["flightLegId", "crewMemberId", "dutyMinutesUsed", "dutyLimitMinutes", "detectedAt"],
+  "properties": {
+    "flightLegId": { "type": "string" },
+    "crewMemberId": { "type": "string" },
+    "dutyMinutesUsed": { "type": "integer", "minimum": 0 },
+    "dutyLimitMinutes": { "type": "integer", "minimum": 1 },
+    "detectedAt": { "type": "string", "format": "date-time" }
+  }
+}

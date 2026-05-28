@@ -1,0 +1,5 @@
+{
+  "name": "crew-coordination",
+  "description": "Check crew availability, suggest replacements, detect duty violations",
+  "tools": ["list_crew_assignments", "get_flight_status", "suggest_crew_swap"]
+}

@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GateChanged",
+  "type": "object",
+  "required": ["flightLegId", "flightNumber", "airportIata", "oldGate", "newGate", "changedAt"],
+  "properties": {
+    "flightLegId": { "type": "string" },
+    "flightNumber": { "type": "string" },
+    "airportIata": { "type": "string", "minLength": 3, "maxLength": 3 },
+    "oldGate": { "type": "string" },
+    "newGate": { "type": "string" },
+    "changedAt": { "type": "string", "format": "date-time" }
+  }
+}

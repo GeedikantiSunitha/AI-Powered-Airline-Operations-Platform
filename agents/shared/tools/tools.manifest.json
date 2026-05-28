@@ -1,0 +1,44 @@
+{
+  "tools": [
+    {
+      "name": "get_flight_status",
+      "description": "Get current flight leg status, ETA, gate, delay minutes",
+      "implementation": "backend API GET /api/v1/flights/:id"
+    },
+    {
+      "name": "query_delay_predictions",
+      "description": "Get ML delay probability and factors",
+      "implementation": "backend API GET /api/v1/predictions/delay"
+    },
+    {
+      "name": "list_crew_assignments",
+      "description": "List crew assigned to a flight with duty legality",
+      "implementation": "supervisor.execute() local tool: listCrewAssignments(flightLegId)"
+    },
+    {
+      "name": "suggest_crew_swap",
+      "description": "Suggest reserve/reassignment options for illegal crew roster",
+      "implementation": "supervisor.execute() local tool: suggestCrewSwap(flightLegId)"
+    },
+    {
+      "name": "get_passenger_connections",
+      "description": "List misconnect risk for inbound/outbound legs",
+      "implementation": "supervisor.execute() local tool: getPassengerConnections(flight)"
+    },
+    {
+      "name": "get_airport_congestion",
+      "description": "Congestion score and gate pressure for an airport",
+      "implementation": "supervisor.execute() local tool: getAirportCongestion(airportIata)"
+    },
+    {
+      "name": "get_weather_risk",
+      "description": "Get weather risk score for destination airport",
+      "implementation": "sagemakerClient feature source: AIRPORT_WEATHER_RISK[destination]"
+    },
+    {
+      "name": "get_fuel_variance",
+      "description": "Planned vs actual fuel for a flight leg",
+      "implementation": "supervisor.execute() local tool: getFuelVariance(flightLegId)"
+    }
+  ]
+}

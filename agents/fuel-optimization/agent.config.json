@@ -1,0 +1,5 @@
+{
+  "name": "fuel-optimization",
+  "description": "Analyze route, load, weather, and fuel burn; suggest fuel-saving actions",
+  "tools": ["get_fuel_variance", "get_flight_status"]
+}

@@ -1,0 +1,17 @@
+[
+  {
+    "flightLegId": "FL-20260521-AI302-DEL-BOM",
+    "delayProbability": 0.63,
+    "predictedDelayMinutes": 59
+  },
+  {
+    "flightLegId": "FL-20260521-AI405-BOM-BLR",
+    "delayProbability": 0.43,
+    "predictedDelayMinutes": 44
+  },
+  {
+    "flightLegId": "FL-20260521-AI118-DEL-DXB",
+    "delayProbability": 0.15,
+    "predictedDelayMinutes": 25
+  }
+]

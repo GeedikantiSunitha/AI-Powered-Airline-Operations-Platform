@@ -1,0 +1,13 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CrewUnavailable",
+  "type": "object",
+  "required": ["flightLegId", "crewRole", "airportIata", "reportedAt"],
+  "properties": {
+    "flightLegId": { "type": "string" },
+    "crewRole": { "type": "string", "enum": ["CAPTAIN", "FO", "PURSER", "FA"] },
+    "airportIata": { "type": "string", "minLength": 3, "maxLength": 3 },
+    "reportedAt": { "type": "string", "format": "date-time" },
+    "notes": { "type": "string" }
+  }
+}

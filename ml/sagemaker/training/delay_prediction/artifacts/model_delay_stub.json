@@ -1,0 +1,12 @@
+{
+  "name": "delay-risk-linear-stub",
+  "version": "0.1.0",
+  "weights": {
+    "inbound_delay_minutes": 0.52,
+    "dest_weather_risk_score": 0.2,
+    "origin_congestion_score": 0.17,
+    "aircraft_rotation_slack_minutes": -0.08,
+    "crew_legal_flag": -0.03
+  },
+  "trained_rows": 3
+}

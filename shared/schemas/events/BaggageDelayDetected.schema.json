@@ -1,0 +1,12 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "BaggageDelayDetected",
+  "type": "object",
+  "required": ["flightLegId", "airportIata", "delayedBags", "detectedAt"],
+  "properties": {
+    "flightLegId": { "type": "string" },
+    "airportIata": { "type": "string", "minLength": 3, "maxLength": 3 },
+    "delayedBags": { "type": "integer", "minimum": 1 },
+    "detectedAt": { "type": "string", "format": "date-time" }
+  }
+}

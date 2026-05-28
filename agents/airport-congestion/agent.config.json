@@ -1,0 +1,5 @@
+{
+  "name": "airport-congestion",
+  "description": "Analyze airport traffic, gate/runway congestion, suggest slot or gate changes",
+  "tools": ["get_airport_congestion", "get_flight_status"]
+}

@@ -1,0 +1,12 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "HighPassengerImpactDetected",
+  "type": "object",
+  "required": ["flightLegId", "affectedPassengers", "missedConnections", "detectedAt"],
+  "properties": {
+    "flightLegId": { "type": "string" },
+    "affectedPassengers": { "type": "integer", "minimum": 0 },
+    "missedConnections": { "type": "integer", "minimum": 0 },
+    "detectedAt": { "type": "string", "format": "date-time" }
+  }
+}

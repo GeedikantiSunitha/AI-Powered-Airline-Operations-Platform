@@ -1,0 +1,5 @@
+{
+  "name": "passenger-impact",
+  "description": "Identify affected passengers, misconnects, rebooking priority, compensation exposure",
+  "tools": ["get_passenger_connections", "get_flight_status"]
+}

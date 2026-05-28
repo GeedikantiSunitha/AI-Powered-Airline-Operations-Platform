@@ -1,0 +1,19 @@
+# Local dependencies for development (Phases 1–4 before full AWS)
+# Production uses RDS/Redshift, ElastiCache, and managed services.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: airline
+      POSTGRES_PASSWORD: airline
+      POSTGRES_DB: airline_ops
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./scripts/db/migrations:/docker-entrypoint-initdb.d:ro
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"

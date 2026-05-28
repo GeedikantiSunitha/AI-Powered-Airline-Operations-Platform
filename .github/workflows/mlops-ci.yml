@@ -1,0 +1,49 @@
+name: MLOps CI
+
+on:
+  push:
+    paths:
+      - 'ml/**'
+      - 'backend/src/services/mlops/**'
+      - 'backend/src/services/prediction/**'
+      - 'backend/src/routes/mlops.ts'
+      - '.github/workflows/mlops-ci.yml'
+  pull_request:
+    paths:
+      - 'ml/**'
+      - 'backend/src/services/mlops/**'
+      - 'backend/src/services/prediction/**'
+      - 'backend/src/routes/mlops.ts'
+
+jobs:
+  package-and-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Backend typecheck
+        working-directory: backend
+        run: |
+          npm ci
+          npm run typecheck
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Train and package model stubs
+        run: |
+          python ml/sagemaker/features/build_delay_features.py
+          python ml/sagemaker/training/delay_prediction/train.py
+          python ml/sagemaker/pipelines/delay_prediction_pipeline.py
+          tar -czf delay-model-artifact.tgz -C ml/sagemaker/training/delay_prediction/artifacts .
+
+      - name: Upload model artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: delay-model-artifact
+          path: delay-model-artifact.tgz
