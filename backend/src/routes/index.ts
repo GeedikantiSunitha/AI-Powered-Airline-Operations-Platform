@@ -9,6 +9,9 @@ import { adminRouter } from './admin';
 import { mlopsRouter } from './mlops';
 import { securityRouter } from './security';
 import { sreRouter } from './sre';
+import { bookingRouter } from './booking';
+import { commercialRouter } from './commercial';
+import { operationsRouter } from './operations';
 
 export const apiRouter = Router();
 
@@ -41,3 +44,10 @@ apiRouter.use('/security', securityRouter);
 
 // Phase 16+
 apiRouter.use('/sre', sreRouter);
+
+// Phase 17+
+apiRouter.use('/booking', bookingRouter);
+
+// Phase 18+
+apiRouter.use('/commercial', commercialRouter);
+apiRouter.use('/operations', operationsRouter);

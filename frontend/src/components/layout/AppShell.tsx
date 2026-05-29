@@ -22,19 +22,19 @@ const nav: Array<{ href: string; label: string; enabled: boolean; roles: UserRol
   {
     href: '/crew',
     label: 'Crew',
-    enabled: false,
+    enabled: true,
     roles: ['admin', 'operations_manager', 'crew_manager'],
   },
   {
     href: '/baggage',
     label: 'Baggage',
-    enabled: false,
+    enabled: true,
     roles: ['admin', 'operations_manager', 'crew_manager', 'analyst', 'viewer'],
   },
   {
     href: '/passenger-impact',
     label: 'Passenger Impact',
-    enabled: false,
+    enabled: true,
     roles: ['admin', 'operations_manager', 'analyst'],
   },
   {
@@ -66,6 +66,24 @@ const nav: Array<{ href: string; label: string; enabled: boolean; roles: UserRol
     label: 'SRE',
     enabled: true,
     roles: ['admin', 'operations_manager'],
+  },
+  {
+    href: '/booking',
+    label: 'Book Flight',
+    enabled: true,
+    roles: ['admin', 'operations_manager', 'analyst', 'viewer', 'crew_manager'],
+  },
+  {
+    href: '/my-trips',
+    label: 'My Trips',
+    enabled: true,
+    roles: ['admin', 'operations_manager', 'analyst', 'viewer', 'crew_manager'],
+  },
+  {
+    href: '/commercial',
+    label: 'Commercial',
+    enabled: true,
+    roles: ['admin', 'operations_manager', 'analyst'],
   },
 ];
 

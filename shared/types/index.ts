@@ -229,3 +229,208 @@ export interface MultiStepOrchestrationResult {
   } | null;
   latencyMs: number;
 }
+
+/** Phase 17 — booking and reservations */
+export type FareClass = 'ECONOMY' | 'PREMIUM_ECONOMY' | 'BUSINESS';
+export type BookingStatus =
+  | 'HELD'
+  | 'PENDING_PAYMENT'
+  | 'CONFIRMED'
+  | 'TICKETED'
+  | 'CANCELLED'
+  | 'REFUNDED'
+  | 'REACCOMMODATED';
+
+export interface FlightSearchResult {
+  flightLegId: string;
+  flightNumber: string;
+  origin: string;
+  destination: string;
+  scheduledDeparture: string;
+  scheduledArrival: string;
+  availableSeats: number;
+  fareFromUsd: number;
+}
+
+export interface FareQuote {
+  quoteId: string;
+  flightLegId: string;
+  fareClass: FareClass;
+  baseFareUsd: number;
+  taxesUsd: number;
+  totalUsd: number;
+  currency: string;
+  expiresAt: string;
+}
+
+export interface SeatMapSeat {
+  seatId: string;
+  row: number;
+  column: string;
+  fareClass: FareClass;
+  available: boolean;
+  priceUsd: number;
+}
+
+export interface SeatMap {
+  flightLegId: string;
+  rows: number;
+  columns: string[];
+  seats: SeatMapSeat[];
+  overbookingLimitPct: number;
+}
+
+export interface PassengerDetail {
+  firstName: string;
+  lastName: string;
+  email: string;
+  documentId?: string;
+}
+
+export interface BookingHold {
+  holdId: string;
+  flightLegId: string;
+  fareClass: FareClass;
+  passengers: PassengerDetail[];
+  seatIds: string[];
+  expiresAt: string;
+  totalUsd: number;
+}
+
+export interface BookingRecord {
+  bookingId: string;
+  pnr: string;
+  status: BookingStatus;
+  flightLegId: string;
+  fareClass: FareClass;
+  passengers: PassengerDetail[];
+  seatIds: string[];
+  ancillaries: Array<{ code: string; label: string; priceUsd: number }>;
+  totalUsd: number;
+  paymentId?: string;
+  ticketNumbers: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PaymentResult {
+  paymentId: string;
+  status: 'succeeded' | 'failed' | 'pending';
+  idempotencyKey: string;
+  fraudRiskScore: number;
+  retryCount: number;
+}
+
+export interface RebookingOption {
+  optionId: string;
+  flightLegId: string;
+  flightNumber: string;
+  policy: string;
+  compensationUsd: number;
+  departure: string;
+}
+
+export interface BookingLifecycleEvent {
+  eventType: string;
+  bookingId: string;
+  pnr: string;
+  payload: Record<string, unknown>;
+  emittedAt: string;
+}
+
+/** Phase 18 — commercial optimization */
+export type CustomerSegmentId = 'LEISURE' | 'BUSINESS' | 'LOYALTY_GOLD' | 'LOYALTY_PLATINUM';
+
+export interface DynamicFareRecommendation {
+  flightLegId: string;
+  fareClass: FareClass;
+  baseFareUsd: number;
+  demandIndex: number;
+  loadFactorPct: number;
+  priceMultiplier: number;
+  recommendedFareUsd: number;
+  rationale: string;
+}
+
+export interface AncillaryOffer {
+  offerId: string;
+  code: 'BAG' | 'SEAT' | 'MEAL' | 'LOUNGE';
+  label: string;
+  basePriceUsd: number;
+  experimentVariant: string;
+  discountedPriceUsd: number;
+  conversionLiftPct: number;
+}
+
+export interface ExperimentAssignment {
+  experimentId: string;
+  variant: 'control' | 'treatment_a' | 'treatment_b';
+  assignedAt: string;
+}
+
+export interface CustomerProfile {
+  customerId: string;
+  segment: CustomerSegmentId;
+  loyaltyTier: 'NONE' | 'SILVER' | 'GOLD' | 'PLATINUM';
+  lifetimeValueUsd: number;
+  recommendations: Array<{ type: string; message: string; priority: number }>;
+}
+
+export interface IropsRecommendation {
+  optionId: string;
+  flightLegId: string;
+  score: number;
+  policy: string;
+  compensationUsd: number;
+  ancillaryRetentionOffers: AncillaryOffer[];
+  cxImpactScore: number;
+  revenueImpactUsd: number;
+}
+
+export interface CommercialImpactMetrics {
+  revenueRetainedUsd: number;
+  ancillaryUpsellUsd: number;
+  compensationCostUsd: number;
+  netRevenueImpactUsd: number;
+  cxScoreDelta: number;
+}
+
+export interface DisruptionOptimizationResult {
+  flightLegId: string;
+  pnr: string;
+  selectedRecommendation: IropsRecommendation;
+  executed: boolean;
+  booking: BookingRecord;
+  impact: CommercialImpactMetrics;
+  experiment: ExperimentAssignment;
+}
+
+export interface RevenueDashboard {
+  funnel: {
+    searches: number;
+    quotes: number;
+    holds: number;
+    bookings: number;
+    tickets: number;
+    conversionRatePct: number;
+  };
+  revenue: {
+    grossBookingUsd: number;
+    ancillaryUsd: number;
+    refundsUsd: number;
+    netUsd: number;
+  };
+  operationalConstraints: Array<{
+    flightLegId: string;
+    flightNumber: string;
+    status: FlightStatus;
+    delayMinutes: number;
+    estimatedConversionImpactPct: number;
+  }>;
+  recentOptimizations: Array<{
+    pnr: string;
+    netRevenueImpactUsd: number;
+    cxScoreDelta: number;
+    executedAt: string;
+  }>;
+}

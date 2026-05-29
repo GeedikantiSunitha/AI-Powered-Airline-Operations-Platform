@@ -1,0 +1,11 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "BookingTicketIssued",
+  "type": "object",
+  "required": ["bookingId", "pnr", "ticketNumbers"],
+  "properties": {
+    "bookingId": { "type": "string" },
+    "pnr": { "type": "string" },
+    "ticketNumbers": { "type": "array", "items": { "type": "string" } }
+  }
+}

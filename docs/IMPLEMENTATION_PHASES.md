@@ -299,14 +299,16 @@ _Local validation:_ `cd backend && npm run runbook:quarterly-failure-drill` retu
 
 **Goal:** Add production-grade passenger booking flows integrated with operations intelligence.
 
-- [ ] Booking APIs: search, fare quote, hold, create booking, payment confirmation, ticket issuance
-- [ ] PNR management: passenger details, itinerary changes, cancellation, refund, re-accommodation
-- [ ] Inventory + seat map service with fare class rules and overbooking controls
-- [ ] Payment gateway abstraction with retry, idempotency keys, and fraud/risk flags
-- [ ] Passenger self-service UI: booking, manage trip, ancillary selection, disruption rebooking
-- [ ] Event integration: emit booking lifecycle events to data lake and agent workflows
+- [x] Booking APIs: search, fare quote, hold, create booking, payment confirmation, ticket issuance
+- [x] PNR management: passenger details, itinerary changes, cancellation, refund, re-accommodation
+- [x] Inventory + seat map service with fare class rules and overbooking controls
+- [x] Payment gateway abstraction with retry, idempotency keys, and fraud/risk flags
+- [x] Passenger self-service UI: booking, manage trip, ancillary selection, disruption rebooking
+- [x] Event integration: emit booking lifecycle events to data lake and agent workflows
 
 **Checkpoint:** End-to-end booking flow (search → pay → ticket) succeeds, and disruption event triggers policy-based rebooking options.
+
+_Local validation:_ `cd backend && npm run runbook:booking-e2e-drill` completes ticketing and policy-based reaccommodation with lifecycle events emitted.
 
 ---
 
@@ -314,13 +316,15 @@ _Local validation:_ `cd backend && npm run runbook:quarterly-failure-drill` retu
 
 **Goal:** Optimize revenue, customer experience, and disruption handling decisions.
 
-- [ ] Dynamic pricing engine integration with demand and seat inventory signals
-- [ ] Offer management for ancillaries (bags, seat, meals, lounge) with experimentation hooks
-- [ ] Customer segmentation and loyalty-aware recommendation layer
-- [ ] Irregular operations module for automated compensation and reaccommodation policy decisions
-- [ ] Revenue and conversion dashboards linking booking funnel to operational constraints
+- [x] Dynamic pricing engine integration with demand and seat inventory signals
+- [x] Offer management for ancillaries (bags, seat, meals, lounge) with experimentation hooks
+- [x] Customer segmentation and loyalty-aware recommendation layer
+- [x] Irregular operations module for automated compensation and reaccommodation policy decisions
+- [x] Revenue and conversion dashboards linking booking funnel to operational constraints
 
 **Checkpoint:** For one disrupted flight, system recommends and executes best rebooking + ancillary retention strategy with tracked revenue/cx impact.
+
+_Local validation:_ `cd backend && npm run runbook:commercial-irops-drill` completes rebooking on AI-302 with ancillary retention and positive net revenue/cx impact metrics.
 
 ---
 

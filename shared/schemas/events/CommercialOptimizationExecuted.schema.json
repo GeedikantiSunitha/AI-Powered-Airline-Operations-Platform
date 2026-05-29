@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CommercialOptimizationExecuted",
+  "type": "object",
+  "required": ["eventType", "flightLegId", "pnr", "netRevenueImpactUsd", "cxScoreDelta", "emittedAt"],
+  "properties": {
+    "eventType": { "const": "CommercialOptimizationExecuted" },
+    "flightLegId": { "type": "string" },
+    "pnr": { "type": "string" },
+    "optionId": { "type": "string" },
+    "netRevenueImpactUsd": { "type": "number" },
+    "cxScoreDelta": { "type": "number" },
+    "experimentId": { "type": "string" },
+    "emittedAt": { "type": "string", "format": "date-time" }
+  }
+}

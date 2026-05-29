@@ -17,7 +17,9 @@
     "runbook:model-drift-rollback-drill": "tsx src/scripts/model-drift-rollback-drill.ts",
     "runbook:agent-orchestration-drill": "tsx src/scripts/agent-orchestration-drill.ts",
     "runbook:security-review-drill": "tsx src/scripts/security-review-drill.ts",
-    "runbook:quarterly-failure-drill": "tsx src/scripts/quarterly-failure-drill.ts"
+    "runbook:quarterly-failure-drill": "tsx src/scripts/quarterly-failure-drill.ts",
+    "runbook:booking-e2e-drill": "tsx src/scripts/booking-e2e-drill.ts",
+    "runbook:commercial-irops-drill": "tsx src/scripts/commercial-irops-drill.ts"
   },
   "dependencies": {
     "cors": "^2.8.5",

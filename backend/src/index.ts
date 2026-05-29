@@ -9,6 +9,8 @@ import { apiRouter } from './routes';
 import { errorHandler } from './middleware/errorHandler';
 import { sloTracker } from './middleware/sloTracker';
 import { createWsManager } from './websocket/manager';
+import { bookingPersistence } from './services/booking/bookingPersistence';
+import { bookingService } from './services/booking/bookingService';
 
 dotenv.config({ path: path.resolve(process.cwd(), '..', '.env') });
 
@@ -32,7 +34,17 @@ const server = http.createServer(app);
 const wss = new WebSocketServer({ server, path: '/ws' });
 createWsManager(wss);
 
-server.listen(PORT, () => {
-  console.log(`[api] listening on http://localhost:${PORT}`);
-  console.log(`[ws]  ws://localhost:${PORT}/ws`);
-});
+async function start(): Promise<void> {
+  await bookingPersistence.init();
+  const loaded = await bookingService.hydrateFromDatabase();
+  if (loaded > 0) {
+    console.log(`[booking-persistence] restored ${loaded} booking(s)`);
+  }
+
+  server.listen(PORT, () => {
+    console.log(`[api] listening on http://localhost:${PORT}`);
+    console.log(`[ws]  ws://localhost:${PORT}/ws`);
+  });
+}
+
+void start();

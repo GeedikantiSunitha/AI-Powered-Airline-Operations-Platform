@@ -1,10 +1,36 @@
 import type {
   Alert,
+  AncillaryOffer,
+  BookingRecord,
+  CustomerProfile,
   DelayPrediction,
+  DisruptionOptimizationResult,
+  DynamicFareRecommendation,
+  FareClass,
+  FareQuote,
   FlightLeg,
   FlightScenarioPredictions,
+  FlightSearchResult,
+  IropsRecommendation,
   KpiSummary,
+  PaymentResult,
+  RebookingOption,
+  RevenueDashboard,
+  SeatMap,
 } from '@airline-ops/shared';
+
+export interface BookingConfirmationEmail {
+  messageId: string;
+  sentTo: string;
+  subject: string;
+  preview: string;
+  sentAt: string;
+}
+
+export interface PaymentConfirmResult {
+  booking: BookingRecord;
+  payment: PaymentResult;
+}
 import { clearSession, getToken } from './authSession';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -253,6 +279,227 @@ export const api = {
       activeAlerts: Array<{ ruleId: string; message: string; severity: string }>;
       syntheticChecks: Array<{ journey: string; passed: boolean; latencyMs: number }>;
     } }>('/api/v1/sre/dashboard');
+    return body.data;
+  },
+
+  async searchFlights(input: {
+    origin: string;
+    destination: string;
+    passengers: number;
+  }): Promise<FlightSearchResult[]> {
+    const body = await sendJson<{ data: FlightSearchResult[] }>('/api/v1/booking/search', 'POST', input);
+    return body.data;
+  },
+
+  async getFareQuote(flightLegId: string, fareClass: string, passengers: number): Promise<FareQuote> {
+    const body = await fetchJson<{ data: FareQuote }>(
+      `/api/v1/booking/fare-quote?flightLegId=${encodeURIComponent(flightLegId)}&fareClass=${fareClass}&passengers=${passengers}`
+    );
+    return body.data;
+  },
+
+  async getSeatMap(flightLegId: string): Promise<SeatMap> {
+    const body = await fetchJson<{ data: SeatMap }>(
+      `/api/v1/booking/seat-map/${encodeURIComponent(flightLegId)}`
+    );
+    return body.data;
+  },
+
+  async createHold(input: {
+    flightLegId: string;
+    fareClass: FareClass;
+    passengers: Array<{ firstName: string; lastName: string; email: string }>;
+    seatIds: string[];
+    quoteId: string;
+  }): Promise<string> {
+    const body = await sendJson<{ data: { holdId: string } }>('/api/v1/booking/hold', 'POST', input);
+    return body.data.holdId;
+  },
+
+  async createBookingFromHold(holdId: string): Promise<BookingRecord> {
+    const body = await sendJson<{ data: BookingRecord }>('/api/v1/booking/create', 'POST', { holdId });
+    return body.data;
+  },
+
+  async addBookingAncillaries(
+    bookingId: string,
+    ancillaries: Array<{ code: string; label: string; priceUsd: number }>
+  ): Promise<BookingRecord> {
+    const body = await sendJson<{ data: BookingRecord }>('/api/v1/booking/ancillaries', 'POST', {
+      bookingId,
+      ancillaries,
+    });
+    return body.data;
+  },
+
+  async confirmBookingPayment(
+    bookingId: string,
+    idempotencyKey: string,
+    cardNumber: string
+  ): Promise<PaymentConfirmResult> {
+    const body = await sendJson<{ data: PaymentConfirmResult }>('/api/v1/booking/payment/confirm', 'POST', {
+      bookingId,
+      idempotencyKey,
+      cardNumber,
+    });
+    return body.data;
+  },
+
+  async retryBookingPayment(
+    bookingId: string,
+    paymentId: string,
+    idempotencyKey: string,
+    cardNumber: string
+  ): Promise<PaymentConfirmResult> {
+    const body = await sendJson<{ data: PaymentConfirmResult }>('/api/v1/booking/payment/retry', 'POST', {
+      bookingId,
+      paymentId,
+      idempotencyKey,
+      cardNumber,
+    });
+    return body.data;
+  },
+
+  async issueBookingTicket(bookingId: string): Promise<{
+    booking: BookingRecord;
+    confirmationEmail: BookingConfirmationEmail;
+  }> {
+    const body = await sendJson<{
+      data: { booking: BookingRecord; confirmationEmail: BookingConfirmationEmail };
+    }>('/api/v1/booking/ticket/issue', 'POST', { bookingId });
+    return body.data;
+  },
+
+  async cancelBooking(pnr: string): Promise<BookingRecord> {
+    const body = await sendJson<{ data: BookingRecord }>(
+      `/api/v1/booking/pnr/${encodeURIComponent(pnr)}/cancel`,
+      'POST',
+      {}
+    );
+    return body.data;
+  },
+
+  async refundBooking(pnr: string): Promise<BookingRecord> {
+    const body = await sendJson<{ data: BookingRecord }>(
+      `/api/v1/booking/pnr/${encodeURIComponent(pnr)}/refund`,
+      'POST',
+      {}
+    );
+    return body.data;
+  },
+
+  async createDemoBooking(email?: string): Promise<BookingRecord> {
+    const body = await sendJson<{ data: BookingRecord }>('/api/v1/commercial/demo-booking', 'POST', {
+      email,
+      flightLegId: 'FL-20260521-AI302-DEL-BOM',
+    });
+    return body.data;
+  },
+
+  async getCrewDashboard() {
+    const body = await fetchJson<{
+      data: Array<{
+        flightLegId: string;
+        flightNumber: string;
+        status: string;
+        delayMinutes: number;
+        crew: Array<{ crewMemberId: string; role: string; legal: boolean }>;
+        reserveActivationRecommended: boolean;
+      }>;
+    }>('/api/v1/operations/crew');
+    return body.data;
+  },
+
+  async getBaggageDashboard() {
+    const body = await fetchJson<{
+      data: Array<{
+        flightLegId: string;
+        flightNumber: string;
+        bagsLoaded: number;
+        bagsDelayed: number;
+        avgDelayMinutes: number;
+        status: string;
+      }>;
+    }>('/api/v1/operations/baggage');
+    return body.data;
+  },
+
+  async getPassengerImpactOps() {
+    const body = await fetchJson<{
+      data: Array<{
+        flightLegId: string;
+        flightNumber: string;
+        delayMinutes: number;
+        prediction: Record<string, unknown>;
+        affectedPnrs: string[];
+        recommendedAction: string;
+      }>;
+    }>('/api/v1/operations/passenger-impact');
+    return body.data;
+  },
+
+  async getPnr(pnr: string): Promise<BookingRecord> {
+    const body = await fetchJson<{ data: BookingRecord }>(
+      `/api/v1/booking/pnr/${encodeURIComponent(pnr)}`
+    );
+    return body.data;
+  },
+
+  async getRebookOptions(pnr: string): Promise<RebookingOption[]> {
+    const body = await fetchJson<{ data: RebookingOption[] }>(
+      `/api/v1/booking/disruption/${encodeURIComponent(pnr)}/rebook-options`
+    );
+    return body.data;
+  },
+
+  async executeRebook(pnr: string, optionId: string): Promise<BookingRecord> {
+    const body = await sendJson<{ data: BookingRecord }>(
+      `/api/v1/booking/disruption/${encodeURIComponent(pnr)}/rebook`,
+      'POST',
+      { optionId }
+    );
+    return body.data;
+  },
+
+  async getRevenueDashboard(): Promise<RevenueDashboard> {
+    const body = await fetchJson<{ data: RevenueDashboard }>('/api/v1/commercial/dashboard/revenue');
+    return body.data;
+  },
+
+  async getDynamicPricing(flightLegId: string): Promise<DynamicFareRecommendation[]> {
+    const body = await fetchJson<{ data: DynamicFareRecommendation[] }>(
+      `/api/v1/commercial/pricing/${encodeURIComponent(flightLegId)}`
+    );
+    return body.data;
+  },
+
+  async getAncillaryOffers(customerId: string): Promise<{ offers: AncillaryOffer[]; experiment: { variant: string } | null }> {
+    const body = await fetchJson<{ data: AncillaryOffer[]; experiment: { variant: string } | null }>(
+      `/api/v1/commercial/offers?customerId=${encodeURIComponent(customerId)}`
+    );
+    return { offers: body.data, experiment: body.experiment };
+  },
+
+  async getCustomerProfile(email: string): Promise<CustomerProfile> {
+    const body = await fetchJson<{ data: CustomerProfile }>(
+      `/api/v1/commercial/customers/profile?email=${encodeURIComponent(email)}`
+    );
+    return body.data;
+  },
+
+  async getIropsRecommendations(pnr: string): Promise<IropsRecommendation[]> {
+    const body = await fetchJson<{ data: IropsRecommendation[] }>(
+      `/api/v1/commercial/irops/recommendations/${encodeURIComponent(pnr)}`
+    );
+    return body.data;
+  },
+
+  async optimizeDisruption(flightLegId: string, pnr: string): Promise<DisruptionOptimizationResult> {
+    const body = await sendJson<{ data: DisruptionOptimizationResult }>(
+      '/api/v1/commercial/irops/optimize',
+      'POST',
+      { flightLegId, pnr }
+    );
     return body.data;
   },
 };
