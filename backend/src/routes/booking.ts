@@ -67,6 +67,7 @@ bookingRouter.post('/search', (req, res) => {
   const origin = String(req.body?.origin ?? '').toUpperCase();
   const destination = String(req.body?.destination ?? '').toUpperCase();
   const passengers = Math.max(1, Number(req.body?.passengers ?? 1));
+  const travelDate = req.body?.travelDate ? String(req.body.travelDate).slice(0, 10) : undefined;
   if (!origin || !destination) {
     res.status(400).json({ error: 'ValidationError', message: 'origin and destination are required' });
     return;
@@ -79,7 +80,7 @@ bookingRouter.post('/search', (req, res) => {
     });
     return;
   }
-  const data = bookingService.search({ origin, destination, passengers });
+  const data = bookingService.search({ origin, destination, passengers, travelDate });
   res.json({ data, meta: { availableRoutes: bookingService.listAvailableRoutes() } });
 });
 

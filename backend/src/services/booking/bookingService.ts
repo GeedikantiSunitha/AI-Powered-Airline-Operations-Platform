@@ -50,7 +50,12 @@ export const bookingService = {
     return [...routes].sort();
   },
 
-  search(input: { origin: string; destination: string; passengers: number }) {
+  search(input: {
+    origin: string;
+    destination: string;
+    passengers: number;
+    travelDate?: string;
+  }) {
     funnelMetrics.record('searches');
     return inventoryService.search(input);
   },

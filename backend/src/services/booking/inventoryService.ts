@@ -10,10 +10,33 @@ function physicalSeatsAvailable(flightLegId: string): number {
   return Math.max(0, maxBookable - inv.bookedSeats);
 }
 
+function airlineNameFor(flightNumber: string): string {
+  if (flightNumber.startsWith('AI-')) return 'Air India';
+  if (flightNumber.startsWith('6E-')) return 'IndiGo';
+  if (flightNumber.startsWith('UK-')) return 'Vistara';
+  return 'Airline Ops';
+}
+
+function travelDateFareFactor(travelDate?: string): number {
+  if (!travelDate) return 1;
+  const d = new Date(`${travelDate}T12:00:00Z`);
+  if (Number.isNaN(d.getTime())) return 1;
+  const dow = d.getUTCDay();
+  const weekend = dow === 0 || dow === 6;
+  const jitter = ((d.getUTCDate() % 5) - 2) * 0.012;
+  return (weekend ? 1.06 : 1) * (1 + jitter);
+}
+
 export const inventoryService = {
   physicalSeatsAvailable,
 
-  search(input: { origin: string; destination: string; passengers: number }): FlightSearchResult[] {
+  search(input: {
+    origin: string;
+    destination: string;
+    passengers: number;
+    travelDate?: string;
+  }): FlightSearchResult[] {
+    const dateFactor = travelDateFareFactor(input.travelDate);
     return mockFlights
       .filter(
         (f) =>
@@ -32,12 +55,13 @@ export const inventoryService = {
         return {
           flightLegId: flight.flightLegId,
           flightNumber: flight.flightNumber,
+          airlineName: airlineNameFor(flight.flightNumber),
           origin: flight.origin,
           destination: flight.destination,
           scheduledDeparture: flight.scheduledDeparture,
           scheduledArrival: flight.scheduledArrival,
           availableSeats,
-          fareFromUsd,
+          fareFromUsd: Number((fareFromUsd * dateFactor).toFixed(0)),
         };
       })
       .filter((row) => row.availableSeats >= input.passengers);

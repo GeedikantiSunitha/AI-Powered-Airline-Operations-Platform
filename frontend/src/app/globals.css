@@ -5,3 +5,9 @@
 body {
   @apply bg-ops-bg text-slate-100 antialiased;
 }
+
+/* Booking — readable dropdown options on dark UI */
+select.booking-select option {
+  background-color: #ffffff;
+  color: #0f172a;
+}

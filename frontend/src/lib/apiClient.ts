@@ -426,6 +426,7 @@ export const api = {
     origin: string;
     destination: string;
     passengers: number;
+    travelDate?: string;
   }): Promise<{ flights: FlightSearchResult[]; availableRoutes?: string[] }> {
     const body = await sendJson<{
       data: FlightSearchResult[];

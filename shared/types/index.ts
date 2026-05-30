@@ -244,6 +244,8 @@ export type BookingStatus =
 export interface FlightSearchResult {
   flightLegId: string;
   flightNumber: string;
+  /** Marketing carrier name (e.g. Air India). */
+  airlineName: string;
   origin: string;
   destination: string;
   scheduledDeparture: string;
