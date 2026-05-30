@@ -1,88 +1,100 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { clearSession, getCurrentUser } from '@/lib/authSession';
+import { api } from '@/lib/apiClient';
 import type { UserRole } from '@airline-ops/shared';
 
-const nav: Array<{ href: string; label: string; enabled: boolean; roles: UserRole[] }> = [
+const PATH_FLAG_KEYS: Record<string, string> = {
+  '/booking': 'module_booking',
+  '/my-trips': 'module_booking',
+  '/commercial': 'module_commercial',
+  '/copilot': 'module_copilot',
+  '/sre': 'module_sre',
+  '/crew': 'module_operations',
+  '/baggage': 'module_operations',
+  '/passenger-impact': 'module_operations',
+};
+
+const nav: Array<{
+  href: string;
+  label: string;
+  flagKey?: string;
+  roles: UserRole[];
+}> = [
   {
     href: '/',
     label: 'Operations',
-    enabled: true,
     roles: ['admin', 'operations_manager', 'crew_manager', 'analyst', 'viewer'],
   },
   {
     href: '/delay-risk',
     label: 'Delay Risk',
-    enabled: true,
     roles: ['admin', 'operations_manager', 'crew_manager', 'analyst', 'viewer'],
   },
   {
     href: '/crew',
     label: 'Crew',
-    enabled: true,
+    flagKey: 'module_operations',
     roles: ['admin', 'operations_manager', 'crew_manager'],
   },
   {
     href: '/baggage',
     label: 'Baggage',
-    enabled: true,
+    flagKey: 'module_operations',
     roles: ['admin', 'operations_manager', 'crew_manager', 'analyst', 'viewer'],
   },
   {
     href: '/passenger-impact',
     label: 'Passenger Impact',
-    enabled: true,
+    flagKey: 'module_operations',
     roles: ['admin', 'operations_manager', 'analyst'],
   },
   {
     href: '/kpi',
     label: 'KPI',
-    enabled: true,
     roles: ['admin', 'operations_manager', 'analyst', 'viewer'],
   },
   {
     href: '/copilot',
     label: 'AI Copilot',
-    enabled: true,
+    flagKey: 'module_copilot',
     roles: ['admin', 'operations_manager', 'crew_manager'],
   },
   {
     href: '/alerts',
     label: 'Alerts',
-    enabled: true,
     roles: ['admin', 'operations_manager', 'analyst', 'viewer'],
   },
   {
     href: '/admin',
     label: 'Admin',
-    enabled: true,
     roles: ['admin'],
   },
   {
     href: '/sre',
     label: 'SRE',
-    enabled: true,
+    flagKey: 'module_sre',
     roles: ['admin', 'operations_manager'],
   },
   {
     href: '/booking',
     label: 'Book Flight',
-    enabled: true,
+    flagKey: 'module_booking',
     roles: ['admin', 'operations_manager', 'analyst', 'viewer', 'crew_manager'],
   },
   {
     href: '/my-trips',
     label: 'My Trips',
-    enabled: true,
+    flagKey: 'module_booking',
     roles: ['admin', 'operations_manager', 'analyst', 'viewer', 'crew_manager'],
   },
   {
     href: '/commercial',
     label: 'Commercial',
-    enabled: true,
+    flagKey: 'module_commercial',
     roles: ['admin', 'operations_manager', 'analyst'],
   },
 ];
@@ -92,8 +104,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [isHydrated, setIsHydrated] = useState(false);
   const [user, setUser] = useState<ReturnType<typeof getCurrentUser>>(null);
+  const [featureFlags, setFeatureFlags] = useState<Record<string, boolean>>({});
   const currentRole = user?.role ?? 'viewer';
-  const visibleNav = nav.filter((item) => item.enabled && item.roles.includes(currentRole));
+
+  const visibleNav = useMemo(
+    () =>
+      nav.filter((item) => {
+        if (!item.roles.includes(currentRole)) return false;
+        if (item.flagKey && featureFlags[item.flagKey] === false) return false;
+        return true;
+      }),
+    [currentRole, featureFlags]
+  );
 
   useEffect(() => {
     setIsHydrated(true);
@@ -101,12 +123,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    if (!user) return;
+    void api
+      .getEnabledFeatureFlags()
+      .then(setFeatureFlags)
+      .catch(() => setFeatureFlags({}));
+  }, [user]);
+
+  useEffect(() => {
     if (pathname === '/login') return;
     const isAllowed = visibleNav.some((item) => item.href === pathname);
-    if (!isAllowed && pathname !== '/') {
+    const pathFlag = PATH_FLAG_KEYS[pathname];
+    const moduleDisabled = pathFlag && featureFlags[pathFlag] === false;
+    if ((!isAllowed && pathname !== '/') || moduleDisabled) {
       router.replace('/');
     }
-  }, [pathname, router, visibleNav]);
+  }, [pathname, router, visibleNav, featureFlags]);
 
   async function onLogout(): Promise<void> {
     clearSession();

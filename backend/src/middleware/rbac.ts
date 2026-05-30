@@ -14,7 +14,7 @@ export function requireRole(..._allowed: UserRole[]) {
     }
 
     if (!_allowed.includes(user.role)) {
-      await logAudit({
+      void logAudit({
         userId: user.userId,
         action: 'auth.permission_denied',
         resource: req.originalUrl,

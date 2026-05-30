@@ -1,57 +1,100 @@
 import jwt from 'jsonwebtoken';
+import { randomUUID } from 'crypto';
 import type { UserRole } from '@airline-ops/shared';
+import { adminPersistence } from '../admin/adminPersistence';
+import { verifyPassword, validatePasswordPolicy } from '../admin/passwordUtils';
+import { cognitoAuth } from './cognitoAuth';
 
 interface LoginInput {
   username: string;
   password: string;
 }
 
-interface AuthUser {
+export interface AuthUser {
   userId: string;
   username: string;
   role: UserRole;
 }
 
-const DEV_USERS: Array<AuthUser & { password: string }> = [
-  { userId: 'u-admin', username: 'admin', password: 'admin123', role: 'admin' },
-  {
-    userId: 'u-ops-manager',
-    username: 'opsmanager',
-    password: 'ops123',
-    role: 'operations_manager',
-  },
-  {
-    userId: 'u-crew-manager',
-    username: 'crewmanager',
-    password: 'crew123',
-    role: 'crew_manager',
-  },
-  { userId: 'u-analyst', username: 'analyst', password: 'analyst123', role: 'analyst' },
-  { userId: 'u-viewer', username: 'viewer', password: 'viewer123', role: 'viewer' },
-];
+interface LoginResult {
+  token?: string;
+  user?: AuthUser;
+  mfaRequired?: boolean;
+  mfaChallengeToken?: string;
+}
 
 const JWT_SECRET = process.env.JWT_SECRET || 'change-me-in-production';
 const JWT_EXPIRES_IN = '8h';
+const MFA_DEV_CODE = '123456';
+
+const mfaChallenges = new Map<string, { userId: string; username: string; role: UserRole }>();
+
+function signUser(user: AuthUser): string {
+  return jwt.sign(user, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+}
 
 export const authService = {
-  login(input: LoginInput): { token: string; user: AuthUser } | null {
-    const match = DEV_USERS.find(
-      (user) => user.username === input.username && user.password === input.password
-    );
-    if (!match) return null;
+  validatePasswordPolicy,
+
+  getAuthConfig() {
+    return {
+      provider: cognitoAuth.isEnabled() ? 'cognito' : 'local',
+      cognito: cognitoAuth.getConfig(),
+      passwordPolicy: {
+        minLength: 8,
+        requireUppercase: true,
+        requireLowercase: true,
+        requireNumber: true,
+      },
+      adminMfaEnforced: process.env.ADMIN_MFA_REQUIRED !== 'false',
+    };
+  },
+
+  async login(input: LoginInput): Promise<LoginResult | null> {
+    if (cognitoAuth.isEnabled()) {
+      return null;
+    }
+
+    const stored = await adminPersistence.findByUsername(input.username.trim().toLowerCase());
+    if (!stored || stored.status === 'disabled' || !stored.passwordHash) return null;
+
+    const valid = await verifyPassword(input.password, stored.passwordHash);
+    if (!valid) return null;
 
     const user: AuthUser = {
-      userId: match.userId,
-      username: match.username,
-      role: match.role,
+      userId: stored.userId,
+      username: stored.username,
+      role: stored.role,
     };
 
-    const token = jwt.sign(user, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
-    return { token, user };
+    if (stored.mfaEnabled && stored.role === 'admin') {
+      const challenge = randomUUID();
+      mfaChallenges.set(challenge, user);
+      return { mfaRequired: true, mfaChallengeToken: challenge };
+    }
+
+    return { token: signUser(user), user };
+  },
+
+  verifyMfa(challengeToken: string, code: string): LoginResult | null {
+    const pending = mfaChallenges.get(challengeToken);
+    if (!pending) return null;
+    if (code !== MFA_DEV_CODE) return null;
+    mfaChallenges.delete(challengeToken);
+    const user: AuthUser = pending;
+    return { token: signUser(user), user };
   },
 
   verifyToken(token: string): AuthUser {
     return jwt.verify(token, JWT_SECRET) as AuthUser;
   },
-};
 
+  async verifyTokenAsync(token: string): Promise<AuthUser> {
+    if (cognitoAuth.isEnabled()) {
+      const cognitoUser = await cognitoAuth.validateCognitoToken(token);
+      if (cognitoUser) return cognitoUser;
+      throw new Error('Invalid Cognito token');
+    }
+    return this.verifyToken(token);
+  },
+};

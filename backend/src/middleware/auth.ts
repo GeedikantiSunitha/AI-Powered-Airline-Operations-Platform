@@ -1,5 +1,5 @@
 /**
- * Phase 1 — JWT / Cognito validation
+ * Phase 1 — JWT (local) or Cognito validation
  */
 import type { Request, Response, NextFunction } from 'express';
 import { authService } from '../services/auth/authService';
@@ -10,7 +10,7 @@ function extractBearerToken(req: Request): string | null {
   return authHeader.slice('Bearer '.length).trim();
 }
 
-export function requireAuth(req: Request, res: Response, next: NextFunction): void {
+export async function requireAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
   const token = extractBearerToken(req);
   if (!token) {
     res.status(401).json({ error: 'Unauthorized', message: 'Missing Bearer token' });
@@ -18,7 +18,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
   }
 
   try {
-    req.user = authService.verifyToken(token);
+    req.user = await authService.verifyTokenAsync(token);
     next();
   } catch {
     res.status(401).json({ error: 'Unauthorized', message: 'Invalid or expired token' });

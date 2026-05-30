@@ -23,7 +23,9 @@ const quotes = new Map<string, FareQuote>();
 
 async function saveBooking(booking: BookingRecord): Promise<void> {
   bookings.set(booking.bookingId, booking);
-  await bookingPersistence.upsert(booking);
+  void bookingPersistence.upsert(booking).catch((err) => {
+    console.warn('[booking-persistence] upsert failed:', err instanceof Error ? err.message : err);
+  });
 }
 
 function generatePnr(): string {
@@ -43,6 +45,11 @@ export const bookingService = {
     return rows.length;
   },
 
+  listAvailableRoutes(): string[] {
+    const routes = new Set(mockFlights.map((f) => `${f.origin}-${f.destination}`));
+    return [...routes].sort();
+  },
+
   search(input: { origin: string; destination: string; passengers: number }) {
     funnelMetrics.record('searches');
     return inventoryService.search(input);
@@ -50,7 +57,8 @@ export const bookingService = {
 
   fareQuote(flightLegId: string, fareClass: FareClass, passengers: number): FareQuote | null {
     const inv = flightInventory[flightLegId];
-    if (!inv || inv.fares[fareClass].available < passengers) return null;
+    if (!inv) return null;
+    if (inventoryService.physicalSeatsAvailable(flightLegId) < passengers) return null;
     funnelMetrics.record('quotes');
     const dynamic = pricingEngine.computeFare(flightLegId, fareClass, passengers);
     const base = dynamic?.recommendedFareUsd ?? inv.fares[fareClass].baseUsd * passengers;
@@ -103,7 +111,10 @@ export const bookingService = {
     return hold;
   },
 
-  async createBookingFromHold(holdId: string): Promise<BookingRecord | null> {
+  async createBookingFromHold(
+    holdId: string,
+    createdByUserId?: string
+  ): Promise<BookingRecord | null> {
     const hold = holds.get(holdId);
     if (!hold || new Date(hold.expiresAt) < new Date()) return null;
     const booking: BookingRecord = {
@@ -117,6 +128,7 @@ export const bookingService = {
       ancillaries: [],
       totalUsd: hold.totalUsd,
       ticketNumbers: [],
+      createdByUserId,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -201,6 +213,12 @@ export const bookingService = {
 
   listBookings(): BookingRecord[] {
     return [...bookings.values()];
+  },
+
+  listBookingsForUser(userId: string): BookingRecord[] {
+    return [...bookings.values()]
+      .filter((b) => b.createdByUserId === userId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   },
 
   async addAncillaries(
@@ -295,6 +313,7 @@ export const bookingService = {
   async createDemoTicketedBooking(input?: {
     flightLegId?: string;
     email?: string;
+    createdByUserId?: string;
   }): Promise<BookingRecord | null> {
     const flightLegId = input?.flightLegId ?? 'FL-20260521-AI302-DEL-BOM';
     const quote = this.fareQuote(flightLegId, 'ECONOMY', 1);
@@ -313,7 +332,7 @@ export const bookingService = {
       quoteId: quote.quoteId,
     });
     if (!hold) return null;
-    const booking = await this.createBookingFromHold(hold.holdId);
+    const booking = await this.createBookingFromHold(hold.holdId, input?.createdByUserId);
     if (!booking) return null;
     const payment = await this.confirmPayment(booking.bookingId, randomUUID(), '4242');
     if (!payment || payment.payment.status !== 'succeeded') return null;

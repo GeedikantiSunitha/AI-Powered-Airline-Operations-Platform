@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/auth';
 import { requireRole } from '../middleware/rbac';
+import { requireModuleFlag } from '../middleware/featureFlag';
 import type { UserRole } from '@airline-ops/shared';
 import { operationsHub } from '../services/operations/operationsHub';
 
@@ -12,7 +13,11 @@ const roles: UserRole[] = [
   'analyst',
   'viewer',
 ];
-operationsRouter.use(requireAuth, requireRole(...roles));
+operationsRouter.use(
+  requireAuth,
+  requireRole(...roles),
+  requireModuleFlag('module_operations')
+);
 
 operationsRouter.get('/crew', (_req, res) => {
   res.json({ data: operationsHub.getCrewDashboard() });

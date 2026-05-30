@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/auth';
 import { requireRole } from '../middleware/rbac';
+import { requireModuleFlag } from '../middleware/featureFlag';
 import { logAudit } from '../middleware/audit';
 import { modelRegistry } from '../services/mlops/modelRegistry';
 import { driftMonitor } from '../services/mlops/driftMonitor';
@@ -9,7 +10,11 @@ import { rollbackService } from '../services/mlops/rollbackService';
 import { mlopsOrchestrator } from '../services/mlops/mlopsOrchestrator';
 
 export const mlopsRouter = Router();
-mlopsRouter.use(requireAuth, requireRole('admin', 'operations_manager', 'analyst'));
+mlopsRouter.use(
+  requireAuth,
+  requireRole('admin', 'operations_manager', 'analyst'),
+  requireModuleFlag('module_mlops')
+);
 
 /** GET /api/v1/mlops/pipelines — Phase 13 */
 mlopsRouter.get('/pipelines', (_req, res) => {

@@ -7,11 +7,16 @@ import { randomUUID } from 'crypto';
 import { knowledgeBase } from '../services/copilot/knowledgeBase';
 import { requireAuth } from '../middleware/auth';
 import { requireRole } from '../middleware/rbac';
+import { requireModuleFlag } from '../middleware/featureFlag';
 import type { UserRole } from '@airline-ops/shared';
 import { agentEvaluation } from '../services/copilot/agentEvaluation';
 
 export const copilotRouter = Router();
-copilotRouter.use(requireAuth, requireRole('admin', 'operations_manager', 'crew_manager'));
+copilotRouter.use(
+  requireAuth,
+  requireRole('admin', 'operations_manager', 'crew_manager'),
+  requireModuleFlag('module_copilot')
+);
 
 interface ApprovalRequest {
   approvalId: string;

@@ -328,6 +328,23 @@ _Local validation:_ `cd backend && npm run runbook:commercial-irops-drill` compl
 
 ---
 
+## Phase 19: Admin platform console
+
+**Goal:** Production-grade admin controls for identity, permissions, health, and configuration.
+
+- [x] Admin console expansion (MLOps, security, audit, commercial config, feature flags)
+- [x] Postgres persistence for users, alert rules, flags, config
+- [x] Password policy + admin MFA (dev code `123456`)
+- [x] Cognito/SSO configuration surface (`AUTH_PROVIDER=cognito`)
+- [x] Role permission matrix API + UI
+- [x] Unified system health hub (SRE + booking funnel + persistence)
+- [x] Feature flags enforced on API routes and nav (`GET /api/v1/config/feature-flags`)
+- [x] Commercial config hot-reload into pricing engine and offer experiments
+- [x] Cognito JWT validation via JWKS (`AUTH_PROVIDER=cognito`, `jose`)
+- [x] PNR scoping — `createdByUserId` + access checks on booking/commercial PNR APIs
+
+---
+
 ## Phase 11+ completion gates
 
 - [ ] RAG answer quality >= target groundedness score on evaluation set

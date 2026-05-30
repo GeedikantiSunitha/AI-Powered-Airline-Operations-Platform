@@ -20,6 +20,7 @@ export default function CommercialPage() {
   const [result, setResult] = useState<DisruptionOptimizationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([api.getRevenueDashboard(), api.getDynamicPricing(DISRUPTED_FLIGHT)])
@@ -27,7 +28,8 @@ export default function CommercialPage() {
         setDashboard(dash);
         setPricing(fares);
       })
-      .catch((e) => setError(e instanceof Error ? e.message : 'Load failed'));
+      .catch((e) => setError(e instanceof Error ? e.message : 'Load failed'))
+      .finally(() => setInitialLoading(false));
   }, []);
 
   async function createDemoBooking() {

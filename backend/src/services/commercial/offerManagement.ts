@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
 import type { AncillaryOffer, ExperimentAssignment } from '@airline-ops/shared';
+import { commercialConfigService } from './commercialConfigService';
 
 const CATALOG: Array<Omit<AncillaryOffer, 'offerId' | 'experimentVariant' | 'discountedPriceUsd' | 'conversionLiftPct'>> = [
   { code: 'BAG', label: 'Extra checked bag', basePriceUsd: 35 },
@@ -23,13 +24,25 @@ function conversionLift(variant: ExperimentAssignment['variant']): number {
 }
 
 export const offerManagement = {
-  assignExperiment(customerId: string, experimentId = 'ancillary-upsell-v1'): ExperimentAssignment {
+  assignExperiment(customerId: string, experimentId?: string): ExperimentAssignment {
+    const expConfig = commercialConfigService.getExperiments();
+    if (!expConfig.ancillaryUpsellEnabled) {
+      const disabled: ExperimentAssignment = {
+        experimentId: 'disabled',
+        variant: 'control',
+        assignedAt: new Date().toISOString(),
+      };
+      experiments.set(customerId, disabled);
+      return disabled;
+    }
+
+    const resolvedExperimentId = experimentId ?? expConfig.defaultExperimentId;
     const hash = customerId.split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
     const bucket = hash % 3;
     const variant: ExperimentAssignment['variant'] =
       bucket === 0 ? 'control' : bucket === 1 ? 'treatment_a' : 'treatment_b';
     const assignment: ExperimentAssignment = {
-      experimentId,
+      experimentId: resolvedExperimentId,
       variant,
       assignedAt: new Date().toISOString(),
     };

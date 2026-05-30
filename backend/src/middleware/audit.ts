@@ -28,7 +28,24 @@ export async function logAudit(entry: AuditEntry): Promise<void> {
     at: new Date().toISOString(),
   };
   auditBuffer.push(payload);
+  if (auditBuffer.length > 2000) auditBuffer.pop();
   console.log('[audit]', JSON.stringify(payload));
+
+  void import('../services/admin/adminPersistence')
+    .then(({ adminPersistence }) =>
+      adminPersistence.persistAudit({
+        traceId: payload.traceId,
+        category: payload.category,
+        userId: payload.userId,
+        action: payload.action,
+        resource: payload.resource,
+        metadata: payload.metadata,
+        at: payload.at,
+      })
+    )
+    .catch(() => {
+      /* persistence optional */
+    });
 }
 
 export function getAuditEvents(): Array<AuditEntry & { at: string; traceId: string; category: AuditCategory }> {

@@ -9,6 +9,7 @@ const AIRPORT_COORDS: Record<string, [number, number]> = {
   BOM: [19.0896, 72.8656],
   BLR: [13.1986, 77.7066],
   DXB: [25.2532, 55.3657],
+  HYD: [17.2403, 78.4294],
 };
 
 export function FlightMap({

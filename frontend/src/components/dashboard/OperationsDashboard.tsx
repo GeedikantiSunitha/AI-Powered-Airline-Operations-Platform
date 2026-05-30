@@ -1,12 +1,21 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 import type { FlightLeg } from '@airline-ops/shared';
 import { api } from '@/lib/apiClient';
 import { PhasePlaceholder } from '@/components/ui/PhasePlaceholder';
 import { connectWs } from '@/lib/wsClient';
-import { FlightMap } from './FlightMap';
 import { FlightDetailDrawer } from './FlightDetailDrawer';
+
+const FlightMap = dynamic(() => import('./FlightMap').then((m) => m.FlightMap), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-[280px] items-center justify-center rounded-lg border border-slate-700 text-sm text-slate-400">
+      Loading map…
+    </div>
+  ),
+});
 
 export function OperationsDashboard() {
   const [flights, setFlights] = useState<FlightLeg[]>([]);

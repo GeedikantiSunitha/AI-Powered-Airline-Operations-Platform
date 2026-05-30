@@ -34,10 +34,43 @@ export interface PaymentConfirmResult {
 import { clearSession, getToken } from './authSession';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const REQUEST_TIMEOUT_MS = 20_000;
+
+function toFetchError(err: unknown): Error {
+  if (err instanceof Error && err.name === 'AbortError') {
+    return new Error('Request timed out. Check that the API server is running on port 3001.');
+  }
+  if (err instanceof Error) return err;
+  return new Error('Network request failed');
+}
+
+async function fetchWithTimeout(
+  path: string,
+  init: RequestInit = {}
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    return await fetch(`${BASE}${path}`, { ...init, signal: controller.signal });
+  } catch (err) {
+    throw toFetchError(err);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function readErrorMessage(res: Response): Promise<string> {
+  try {
+    const body = (await res.json()) as { message?: string; error?: string };
+    return body.message || body.error || `${res.status} ${res.statusText}`;
+  } catch {
+    return `${res.status} ${res.statusText}`;
+  }
+}
 
 async function fetchJson<T>(path: string): Promise<T> {
   const token = getToken();
-  const res = await fetch(`${BASE}${path}`, {
+  const res = await fetchWithTimeout(path, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
   if (res.status === 401) {
@@ -45,13 +78,13 @@ async function fetchJson<T>(path: string): Promise<T> {
     if (typeof window !== 'undefined') window.location.href = '/login';
     throw new Error('Unauthorized');
   }
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+  if (!res.ok) throw new Error(await readErrorMessage(res));
   return res.json() as Promise<T>;
 }
 
 async function sendJson<T>(path: string, method: 'POST' | 'PATCH', body: unknown): Promise<T> {
   const token = getToken();
-  const res = await fetch(`${BASE}${path}`, {
+  const res = await fetchWithTimeout(path, {
     method,
     headers: {
       'Content-Type': 'application/json',
@@ -64,7 +97,7 @@ async function sendJson<T>(path: string, method: 'POST' | 'PATCH', body: unknown
     if (typeof window !== 'undefined') window.location.href = '/login';
     throw new Error('Unauthorized');
   }
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+  if (!res.ok) throw new Error(await readErrorMessage(res));
   return res.json() as Promise<T>;
 }
 
@@ -72,6 +105,8 @@ export interface AdminUser {
   username: string;
   role: 'admin' | 'operations_manager' | 'crew_manager' | 'analyst' | 'viewer';
   status: 'active' | 'disabled';
+  mfaEnabled?: boolean;
+  authProvider?: string;
 }
 
 export interface AlertRule {
@@ -233,6 +268,7 @@ export const api = {
   async createAdminUser(input: {
     username: string;
     role: AdminUser['role'];
+    password: string;
   }): Promise<AdminUser> {
     const body = await sendJson<{ data: AdminUser }>('/api/v1/admin/users', 'POST', input);
     return body.data;
@@ -240,7 +276,7 @@ export const api = {
 
   async updateAdminUser(
     username: string,
-    input: { role?: AdminUser['role']; status?: AdminUser['status'] }
+    input: { role?: AdminUser['role']; status?: AdminUser['status']; mfaEnabled?: boolean; password?: string }
   ): Promise<AdminUser> {
     const body = await sendJson<{ data: AdminUser }>(
       `/api/v1/admin/users/${encodeURIComponent(username)}`,
@@ -267,6 +303,110 @@ export const api = {
     return body.data;
   },
 
+  async getAdminHealthHub() {
+    const body = await fetchJson<{ data: Record<string, unknown> }>('/api/v1/admin/health-hub');
+    return body.data;
+  },
+
+  async getPermissionMatrix() {
+    const body = await fetchJson<{
+      data: Array<{
+        moduleId: string;
+        label: string;
+        path: string;
+        apiPrefix: string;
+        roles: string[];
+      }>;
+    }>('/api/v1/admin/permissions');
+    return body.data;
+  },
+
+  async getAdminAuditLogs(limit = 100) {
+    const body = await fetchJson<{
+      data: Array<{
+        traceId: string;
+        category: string;
+        userId?: string;
+        action: string;
+        resource?: string;
+        at: string;
+      }>;
+    }>(`/api/v1/admin/audit-logs?limit=${limit}`);
+    return body.data;
+  },
+
+  async getAdminMlopsSummary() {
+    const body = await fetchJson<{ data: Record<string, unknown> }>('/api/v1/admin/mlops/summary');
+    return body.data;
+  },
+
+  async getAdminSecuritySummary() {
+    const body = await fetchJson<{ data: Record<string, unknown> }>('/api/v1/admin/security/summary');
+    return body.data;
+  },
+
+  async getFeatureFlags() {
+    const body = await fetchJson<{
+      data: Array<{ flagKey: string; enabled: boolean; description: string }>;
+    }>('/api/v1/admin/feature-flags');
+    return body.data;
+  },
+
+  async updateFeatureFlag(flagKey: string, enabled: boolean) {
+    const body = await sendJson<{ data: { flagKey: string; enabled: boolean } }>(
+      `/api/v1/admin/feature-flags/${encodeURIComponent(flagKey)}`,
+      'PATCH',
+      { enabled }
+    );
+    return body.data;
+  },
+
+  async getCommercialConfig() {
+    const body = await fetchJson<{ data: Record<string, unknown> }>('/api/v1/admin/commercial-config');
+    return body.data;
+  },
+
+  async updateCommercialConfig(key: string, value: Record<string, unknown>) {
+    const body = await sendJson<{ data: Record<string, unknown> }>(
+      '/api/v1/admin/commercial-config',
+      'PATCH',
+      { key, value }
+    );
+    return body.data;
+  },
+
+  async getAuthConfig() {
+    const body = await fetchJson<{ data: Record<string, unknown> }>('/api/v1/auth/config');
+    return body.data;
+  },
+
+  async getEnabledFeatureFlags(): Promise<Record<string, boolean>> {
+    const body = await fetchJson<{ data: Record<string, boolean> }>('/api/v1/config/feature-flags');
+    return body.data;
+  },
+
+  async getMyBookings(): Promise<BookingRecord[]> {
+    const body = await fetchJson<{ data: BookingRecord[] }>('/api/v1/booking/mine');
+    return body.data;
+  },
+
+  async verifyMfa(mfaChallengeToken: string, code: string) {
+    const res = await fetch(`${BASE}/api/v1/auth/mfa/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mfaChallengeToken, code }),
+    });
+    const payload = (await res.json()) as {
+      token?: string;
+      user?: { userId: string; username: string; role: string };
+      message?: string;
+    };
+    if (!res.ok || !payload.token || !payload.user) {
+      throw new Error(payload.message || 'MFA verification failed');
+    }
+    return payload;
+  },
+
   async getSreDashboard(): Promise<{
     slo: { met: boolean; snapshot: Record<string, number> };
     widgets: Record<string, Record<string, string | number>>;
@@ -286,9 +426,15 @@ export const api = {
     origin: string;
     destination: string;
     passengers: number;
-  }): Promise<FlightSearchResult[]> {
-    const body = await sendJson<{ data: FlightSearchResult[] }>('/api/v1/booking/search', 'POST', input);
-    return body.data;
+  }): Promise<{ flights: FlightSearchResult[]; availableRoutes?: string[] }> {
+    const body = await sendJson<{
+      data: FlightSearchResult[];
+      meta?: { availableRoutes: string[] };
+    }>('/api/v1/booking/search', 'POST', input);
+    return {
+      flights: body.data,
+      availableRoutes: body.meta?.availableRoutes ?? [],
+    };
   },
 
   async getFareQuote(flightLegId: string, fareClass: string, passengers: number): Promise<FareQuote> {

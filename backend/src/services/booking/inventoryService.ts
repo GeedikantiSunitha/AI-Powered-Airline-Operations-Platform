@@ -3,7 +3,16 @@ import { mockFlights } from '../../data/mockFlights';
 import { buildSeatMap, flightInventory } from '../../data/mockInventory';
 import { pricingEngine } from '../commercial/pricingEngine';
 
+function physicalSeatsAvailable(flightLegId: string): number {
+  const inv = flightInventory[flightLegId];
+  if (!inv) return 0;
+  const maxBookable = Math.floor(inv.capacity * (1 + inv.overbookingLimitPct / 100));
+  return Math.max(0, maxBookable - inv.bookedSeats);
+}
+
 export const inventoryService = {
+  physicalSeatsAvailable,
+
   search(input: { origin: string; destination: string; passengers: number }): FlightSearchResult[] {
     return mockFlights
       .filter(
@@ -14,7 +23,8 @@ export const inventoryService = {
       .map((flight) => {
         const inv = flightInventory[flight.flightLegId];
         const dynamic = pricingEngine.computeFare(flight.flightLegId, 'ECONOMY', input.passengers);
-        const fareFromUsd = dynamic?.recommendedFareUsd ?? (inv?.fares.ECONOMY.baseUsd ?? 150) * input.passengers;
+        const fareFromUsd =
+          dynamic?.recommendedFareUsd ?? (inv?.fares.ECONOMY.baseUsd ?? 150) * input.passengers;
         const maxBookable = inv
           ? Math.floor(inv.capacity * (1 + inv.overbookingLimitPct / 100))
           : 180;
@@ -27,7 +37,7 @@ export const inventoryService = {
           scheduledDeparture: flight.scheduledDeparture,
           scheduledArrival: flight.scheduledArrival,
           availableSeats,
-          fareFromUsd: fareFromUsd * input.passengers,
+          fareFromUsd,
         };
       })
       .filter((row) => row.availableSeats >= input.passengers);

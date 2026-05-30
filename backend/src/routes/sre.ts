@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/auth';
 import { requireRole } from '../middleware/rbac';
+import { requireModuleFlag } from '../middleware/featureFlag';
 import { logAudit } from '../middleware/audit';
 import { sreDashboard } from '../services/sre/sreDashboard';
 import { alertingStrategy } from '../services/sre/alertingStrategy';
@@ -10,12 +11,44 @@ import { chaosDrills, type ChaosScenario } from '../services/sre/chaosDrills';
 import { metricsStore } from '../services/sre/metricsStore';
 
 export const sreRouter = Router();
-sreRouter.use(requireAuth, requireRole('admin', 'operations_manager'));
+sreRouter.use(
+  requireAuth,
+  requireRole('admin', 'operations_manager'),
+  requireModuleFlag('module_sre')
+);
+
+function fallbackDashboard(): Awaited<ReturnType<typeof sreDashboard.getUnifiedDashboard>> {
+  const snapshot = metricsStore.getSnapshot();
+  const targets = metricsStore.getTargets();
+  return {
+    updatedAt: new Date().toISOString(),
+    slo: { snapshot, targets, met: false },
+    widgets: {
+      pipelineHealth: { score: snapshot.pipelineHealthScore, status: 'degraded' },
+      modelHealth: { score: snapshot.modelHealthScore, status: 'degraded' },
+      agentLatency: { p95Ms: snapshot.agentLatencyP95Ms, targetMs: targets.agentLatencyP95Ms, healthScore: snapshot.agentHealthScore },
+      apiSlo: {
+        latencyP95Ms: snapshot.apiLatencyP95Ms,
+        errorRatePct: snapshot.apiErrorRatePct,
+        targetLatencyP95Ms: targets.apiLatencyP95Ms,
+        targetErrorRatePct: targets.apiErrorRatePct,
+      },
+    },
+    activeAlerts: [],
+    syntheticChecks: [],
+  };
+}
+
 
 /** GET /api/v1/sre/dashboard — Phase 16 unified dashboard */
 sreRouter.get('/dashboard', async (_req, res, next) => {
   try {
-    const data = await sreDashboard.getUnifiedDashboard();
+    const data = await Promise.race([
+      sreDashboard.getUnifiedDashboard(),
+      new Promise<Awaited<ReturnType<typeof sreDashboard.getUnifiedDashboard>>>((resolve) => {
+        setTimeout(() => resolve(fallbackDashboard()), 2000);
+      }),
+    ]);
     res.json({ data });
   } catch (err) {
     next(err);

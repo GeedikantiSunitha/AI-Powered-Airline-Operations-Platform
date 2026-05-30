@@ -309,6 +309,8 @@ export interface BookingRecord {
   totalUsd: number;
   paymentId?: string;
   ticketNumbers: string[];
+  /** User who created the booking — used for PNR access control */
+  createdByUserId?: string;
   createdAt: string;
   updatedAt: string;
 }

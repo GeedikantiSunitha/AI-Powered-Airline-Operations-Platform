@@ -12,11 +12,13 @@ import { sreRouter } from './sre';
 import { bookingRouter } from './booking';
 import { commercialRouter } from './commercial';
 import { operationsRouter } from './operations';
+import { configRouter } from './config';
 
 export const apiRouter = Router();
 
 // Phase 1+
 apiRouter.use('/auth', authRouter);
+apiRouter.use('/config', configRouter);
 
 // Phase 2+
 apiRouter.use('/flights', flightsRouter);

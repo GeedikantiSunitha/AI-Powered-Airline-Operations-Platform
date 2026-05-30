@@ -72,6 +72,16 @@ src/
 | GET | /api/v1/commercial/irops/recommendations/:pnr | 18 |
 | POST | /api/v1/commercial/irops/optimize | 18 |
 | GET | /api/v1/commercial/dashboard/revenue | 18 |
+| GET | /api/v1/config/feature-flags | 19 |
+| GET | /api/v1/booking/mine | 19 |
+| GET | /api/v1/admin/health-hub | 19 |
+| GET | /api/v1/admin/permissions | 19 |
+| GET | /api/v1/admin/audit-logs | 19 |
+| GET | /api/v1/admin/feature-flags | 19 |
+| GET | /api/v1/admin/commercial-config | 19 |
+| GET | /api/v1/admin/mlops/summary | 19 |
+| GET | /api/v1/admin/security/summary | 19 |
+| POST | /api/v1/auth/mfa/verify | 19 |
 | GET | /api/v1/admin/users | 10 |
 | GET | /api/v1/copilot/knowledge/documents | 11 |
 | POST | /api/v1/copilot/knowledge/search | 11 |

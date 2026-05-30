@@ -6,16 +6,19 @@ import { api } from '@/lib/apiClient';
 
 export default function PassengerImpactPage() {
   const [rows, setRows] = useState<Awaited<ReturnType<typeof api.getPassengerImpactOps>>>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     api
       .getPassengerImpactOps()
       .then(setRows)
-      .catch((e) => setError(e.message));
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false));
   }, []);
 
-  if (error) return <p className="text-ops-critical">{error}</p>;
+  if (loading) return <p className="text-slate-400">Loading passenger impact…</p>;
+  if (error) return <p className="text-ops-critical">Passenger impact error: {error}</p>;
 
   return (
     <div className="space-y-4">

@@ -17,6 +17,7 @@ function rowToBooking(row: pg.QueryResultRow): BookingRecord {
     totalUsd: Number(row.total_usd),
     paymentId: (row.payment_id as string) || undefined,
     ticketNumbers: row.ticket_numbers as string[],
+    createdByUserId: (row.created_by_user_id as string) || undefined,
     createdAt: new Date(row.created_at as string).toISOString(),
     updatedAt: new Date(row.updated_at as string).toISOString(),
   };
@@ -34,7 +35,13 @@ export const bookingPersistence = {
       return;
     }
     try {
-      pool = new pg.Pool({ connectionString: url, max: 5 });
+      pool = new pg.Pool({
+        connectionString: url,
+        max: 5,
+        connectionTimeoutMillis: 2000,
+        query_timeout: 3000,
+        statement_timeout: 3000,
+      });
       await pool.query('SELECT 1');
       await pool.query(`
         CREATE TABLE IF NOT EXISTS bookings (
@@ -49,10 +56,14 @@ export const bookingPersistence = {
           total_usd NUMERIC(12, 2) NOT NULL,
           payment_id VARCHAR(64),
           ticket_numbers JSONB NOT NULL DEFAULT '[]'::jsonb,
+          created_by_user_id VARCHAR(64),
           created_at TIMESTAMPTZ NOT NULL,
           updated_at TIMESTAMPTZ NOT NULL
         )
       `);
+      await pool.query(
+        'ALTER TABLE bookings ADD COLUMN IF NOT EXISTS created_by_user_id VARCHAR(64)'
+      );
       enabled = true;
       console.log('[booking-persistence] Postgres enabled');
     } catch (err) {
@@ -73,8 +84,8 @@ export const bookingPersistence = {
     await pool.query(
       `INSERT INTO bookings (
         booking_id, pnr, status, flight_leg_id, fare_class, passengers, seat_ids,
-        ancillaries, total_usd, payment_id, ticket_numbers, created_at, updated_at
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+        ancillaries, total_usd, payment_id, ticket_numbers, created_by_user_id, created_at, updated_at
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
       ON CONFLICT (booking_id) DO UPDATE SET
         status = EXCLUDED.status,
         flight_leg_id = EXCLUDED.flight_leg_id,
@@ -85,6 +96,7 @@ export const bookingPersistence = {
         total_usd = EXCLUDED.total_usd,
         payment_id = EXCLUDED.payment_id,
         ticket_numbers = EXCLUDED.ticket_numbers,
+        created_by_user_id = COALESCE(EXCLUDED.created_by_user_id, bookings.created_by_user_id),
         updated_at = EXCLUDED.updated_at`,
       [
         booking.bookingId,
@@ -98,6 +110,7 @@ export const bookingPersistence = {
         booking.totalUsd,
         booking.paymentId ?? null,
         JSON.stringify(booking.ticketNumbers),
+        booking.createdByUserId ?? null,
         booking.createdAt,
         booking.updatedAt,
       ]

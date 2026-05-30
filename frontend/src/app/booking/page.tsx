@@ -57,6 +57,8 @@ export default function BookingPage() {
   const [passengerCount, setPassengerCount] = useState(1);
   const [fareClass, setFareClass] = useState<FareClass>('ECONOMY');
   const [results, setResults] = useState<FlightSearchResult[]>([]);
+  const [hasSearched, setHasSearched] = useState(false);
+  const [availableRoutes, setAvailableRoutes] = useState<string[]>([]);
   const [selected, setSelected] = useState<FlightSearchResult | null>(null);
   const [quote, setQuote] = useState<FareQuote | null>(null);
   const [seatMap, setSeatMap] = useState<SeatMap | null>(null);
@@ -89,6 +91,17 @@ export default function BookingPage() {
     });
   }, [passengerCount]);
 
+  useEffect(() => {
+    void api
+      .searchFlights({ origin: 'DEL', destination: 'BOM', passengers: 1 })
+      .then(({ availableRoutes }) => {
+        if (availableRoutes.length > 0) setAvailableRoutes(availableRoutes);
+      })
+      .catch(() => {
+        /* routes hint is optional */
+      });
+  }, []);
+
   const ancillaryTotal = useMemo(
     () =>
       offers
@@ -100,14 +113,31 @@ export default function BookingPage() {
   const totalDue = (quote?.totalUsd ?? 0) + ancillaryTotal;
 
   async function handleSearch() {
+    const from = origin.trim().toUpperCase();
+    const to = destination.trim().toUpperCase();
+    if (!from || !to) {
+      setError('Enter origin and destination airport codes');
+      return;
+    }
+    if (from === to) {
+      setError('Origin and destination must be different airports');
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setBooking(null);
     setStep('search');
     try {
-      const rows = await api.searchFlights({ origin, destination, passengers: passengerCount });
-      setResults(rows);
-      setSelected(rows[0] ?? null);
+      const { flights, availableRoutes: routes } = await api.searchFlights({
+        origin: from,
+        destination: to,
+        passengers: passengerCount,
+      });
+      setHasSearched(true);
+      setResults(flights);
+      setAvailableRoutes(routes);
+      setSelected(flights[0] ?? null);
       setQuote(null);
       setSeatMap(null);
     } catch (e) {
@@ -131,7 +161,12 @@ export default function BookingPage() {
       setSelectedSeats([]);
       setStep('passengers');
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not load flight details');
+      const msg = e instanceof Error ? e.message : 'Could not load flight details';
+      setError(
+        msg.includes('Fare not available') || msg.includes('404')
+          ? 'No seats available for this fare class. Try another class or route.'
+          : msg
+      );
     } finally {
       setLoading(false);
     }
@@ -341,13 +376,31 @@ export default function BookingPage() {
               onChange={(e) => setPassengerCount(Math.min(6, Math.max(1, Number(e.target.value))))}
             />
             <button
-              onClick={handleSearch}
+              onClick={() => void handleSearch()}
               disabled={loading}
               className="rounded bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-500 disabled:opacity-50"
             >
               Search
             </button>
           </div>
+
+          {availableRoutes.length > 0 && (
+            <p className="text-xs text-slate-500">
+              Bookable routes: {availableRoutes.join(' · ')}
+            </p>
+          )}
+
+          {hasSearched && results.length === 0 && (
+            <p className="rounded border border-amber-800/60 bg-amber-950/20 p-3 text-sm text-amber-200">
+              No flights for {origin} → {destination}.
+              {availableRoutes.length > 0 ? (
+                <>
+                  {' '}
+                  Available routes: {availableRoutes.join(', ')}.
+                </>
+              ) : null}
+            </p>
+          )}
 
           {results.length > 0 && (
             <div className="rounded border border-slate-700">
