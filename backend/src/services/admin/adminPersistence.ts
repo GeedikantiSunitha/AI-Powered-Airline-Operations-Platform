@@ -130,6 +130,10 @@ export const adminPersistence = {
   },
 
   async init(): Promise<void> {
+    if (process.env.NODE_ENV === 'test') {
+      await seedDefaults();
+      return;
+    }
     const url = process.env.DATABASE_URL;
     if (!url) {
       await seedDefaults();

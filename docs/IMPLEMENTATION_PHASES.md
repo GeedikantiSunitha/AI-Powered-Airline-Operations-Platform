@@ -347,9 +347,43 @@ _Local validation:_ `cd backend && npm run runbook:commercial-irops-drill` compl
 
 ## Phase 11+ completion gates
 
-- [ ] RAG answer quality >= target groundedness score on evaluation set
-- [ ] Model drift alarms and rollback tested in non-prod and prod-like environment
-- [ ] Agent recommendations traceable with citations, confidence, and approval status
-- [ ] Security sign-off for private inference + least privilege + encryption posture
-- [ ] Operational SLOs met for API latency, prediction freshness, and alert delivery
-- [ ] Booking platform SLOs met for search latency, payment success rate, and ticket issuance reliability
+- [x] RAG answer quality >= target groundedness score on evaluation set
+- [x] Model drift alarms and rollback tested in non-prod and prod-like environment
+- [x] Agent recommendations traceable with citations, confidence, and approval status
+- [x] Security sign-off for private inference + least privilege + encryption posture
+- [x] Operational SLOs met for API latency, prediction freshness, and alert delivery
+- [x] Booking platform SLOs met for search latency, payment success rate, and ticket issuance reliability
+
+_Validation (local / prod-like simulation):_
+
+```bash
+cd backend && npm run validate:phase11-gates
+```
+
+- Eval set: `backend/src/data/rag-eval-set.json` (mean groundedness ≥ 0.85)
+- Admin API: `GET /api/v1/admin/completion-gates` (admin role) returns the same report JSON
+- Targets: `backend/src/config/phase11Gates.ts`
+
+Re-run after major copilot, MLOps, booking, or SRE changes. For production sign-off, run the same command in staging and attach the JSON report to your release record.
+
+### Automated tests (Vitest)
+
+From repo root (Windows-friendly — no `NODE_OPTIONS=...` syntax):
+
+```bash
+npm run test              # backend + frontend
+npm run test:backend      # 20 tests (unit + API integration)
+npm run test:frontend     # booking UI helpers
+npm run test:gates        # Phase 11+ completion gates
+```
+
+Or from each package:
+
+```bash
+cd backend && npm run test
+cd backend && npm run test:unit
+cd backend && npm run test:integration
+cd frontend && npm run test
+```
+
+Tests use in-memory admin seed (`NODE_ENV=test`); no Postgres required for Vitest.

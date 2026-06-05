@@ -32,6 +32,17 @@ function toPublicUser(u: Awaited<ReturnType<typeof adminPersistence.listUsers>>[
   };
 }
 
+/** GET /api/v1/admin/completion-gates — Phase 11+ exit criteria (read-only validation) */
+adminRouter.get('/completion-gates', async (_req, res, next: NextFunction) => {
+  try {
+    const { phase11Gates } = await import('../services/completion-gates/phase11Gates');
+    const report = await phase11Gates.validateAll();
+    res.json({ data: report });
+  } catch (err) {
+    next(err);
+  }
+});
+
 /** GET /api/v1/admin/health-hub */
 adminRouter.get('/health-hub', async (_req, res, next: NextFunction) => {
   try {

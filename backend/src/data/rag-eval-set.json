@@ -1,0 +1,27 @@
+[
+  {
+    "id": "crew-duty",
+    "query": "crew duty maximum reserve activation reassignment mandatory",
+    "expectDocumentIdPrefix": "CREW-"
+  },
+  {
+    "id": "irrops-sop",
+    "query": "irregular operations rebooking priority unaccompanied minors",
+    "expectDocumentIdPrefix": "SOP-"
+  },
+  {
+    "id": "compensation",
+    "query": "disruption window 45 minutes prioritize rebooking compensation threshold",
+    "expectDocumentIdPrefix": "SOP-"
+  },
+  {
+    "id": "fatigue",
+    "query": "crew fatigue mitigation duty maximum",
+    "expectDocumentIdPrefix": "CREW-"
+  },
+  {
+    "id": "compliance",
+    "query": "dispatch alert escalation weather risk audit logging citation confidence",
+    "expectDocumentIdPrefix": "FAA-"
+  }
+]

@@ -2,7 +2,7 @@ import type { FlightLeg } from '@airline-ops/shared';
 import { buildSupplementalFlights } from './supplementalFlights';
 
 /** Phase 0–2 mock data — replace with DB/Redshift in Phase 4 */
-const baseMockFlights: FlightLeg[] = [
+export const baseMockFlights: FlightLeg[] = [
   {
     flightLegId: 'FL-20260521-AI302-DEL-BOM',
     flightNumber: 'AI-302',
